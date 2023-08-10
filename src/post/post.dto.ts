@@ -1,8 +1,32 @@
+import { IsArray, IsNotEmpty } from "class-validator";
+import { ObjectId } from "mongoose";
 
 export class CreatePostDto {
-    id: number;
+    parent:ObjectId;
+
+    @IsNotEmpty()
     title: string;
+
+    summary: string;
+
+    meta_title: string;
+
     description: string;
-    author: string;
-    url: string;
+
+    @IsNotEmpty()
+    content: string;
+
+    @IsNotEmpty()
+    thumnail:string;
+
+    @IsArray()
+    tags: [string];
+
+    views: number;
+
+    @IsArray()
+    categories: [ObjectId];
+
+    published_at:string;
+
 }
