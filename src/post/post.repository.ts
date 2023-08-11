@@ -8,14 +8,11 @@ import { Post } from './post.model';
 
 @Injectable()
 export class PostRepository extends BaseRepository<Post> {
-//   constructor(
-//     @InjectModel('Post')
-//     private readonly postModel: Model<Post>,
-//   ) {
-//     super(postModel);
-//   }
-
-  async countDocuments(filter) {
-    // return this.postModel.countDocuments(filter);
+  constructor(
+    @InjectModel('Post')
+    private readonly postModel: Model<Post>,
+  ) {
+    super(postModel);
   }
+
 }

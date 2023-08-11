@@ -9,7 +9,7 @@ export class CreatePostDto {
 
     summary: string;
 
-    meta_title: string;
+    metaTitle: string;
 
     description: string;
 
@@ -27,6 +27,39 @@ export class CreatePostDto {
     @IsArray()
     categories: [ObjectId];
 
-    published_at:string;
+    publishedAt:string;
 
 }
+
+
+export class UpdatePostDto {
+    parent:ObjectId;
+
+    @IsNotEmpty()
+    title: string;
+
+    summary: string;
+
+    metaTitle: string;
+
+    description: string;
+
+    @IsNotEmpty()
+    content: string;
+
+    @IsNotEmpty()
+    thumnail:string;
+
+    @IsArray()
+    tags: [string];
+
+    views: number;
+
+    @IsArray()
+    categories: [ObjectId];
+
+    publishedAt:string;
+
+}
+
+

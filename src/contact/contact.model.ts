@@ -7,9 +7,9 @@ const ContactSchema = new Schema(
     subject: String,
     content: String,
 
-    created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now },
-    deleted_flag: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+    deletedFlag: { type: Boolean, default: false },
   },
   {
     timestamps: true,
@@ -25,8 +25,8 @@ export interface Contact extends Document {
   subject: string;
   content: string;
 
-  created_at: string;
-  updated_at: string;
-  deleted_flag: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedFlag: boolean;
 }
 

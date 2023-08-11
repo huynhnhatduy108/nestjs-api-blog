@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Post, Body, Delete, Query } from '@nestjs/common';
-import { CreatePostDto } from './post.dto';
+import { Controller, Get, Param, Post, Put, Body, Delete, Query } from '@nestjs/common';
+import { CreatePostDto, UpdatePostDto } from './post.dto';
+import { PostQuery } from './post.interface';
 import { PostService } from './post.service';
 
 @Controller('post')
@@ -7,20 +8,33 @@ export class PostController {
     constructor(private postervice: PostService) {}
 
     @Get()
-    async getPost() {
-        const post = await this.postervice.getListPost();
+    async getListPost(@Query() condition:PostQuery) {        
+        const post = await this.postervice.getListPost(condition);        
         return post;
     }
 
     @Get(':postId')
-    async getCourse(@Param('postId') postId) {
-        const post = await this.postervice.getDetailPost(postId);
+    async getPostById(@Param('postId') postId:string) {
+        const post = await this.postervice.getDetailPostById(postId);
+        return post;
+    }
+
+
+    @Get('slug/:slug')
+    async getPostBySlug(@Param('slug') slug:string) {
+        const post = await this.postervice.getDetailPostBySlug(slug);
         return post;
     }
 
     @Post()
-    async addPost(@Body() CreatePostDto: CreatePostDto) {
-        const post = await this.postervice.addPost(CreatePostDto);
+    async createPost(@Body() CreatePostDto: CreatePostDto) {
+        const post = await this.postervice.createPost(CreatePostDto);
+        return post;
+    }
+
+    @Put(':postId')
+    async updatePost(@Param('postId') postId:string ,@Body() updatePostDto: UpdatePostDto) {
+        const post = await this.postervice.updatePost(postId, updatePostDto);
         return post;
     }
 

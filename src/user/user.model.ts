@@ -15,9 +15,9 @@ const UserSchema = new Schema(
     avatar_url: String,
     provider: String,
 
-    created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now },
-    deleted_flag: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+    deletedFlag: { type: Boolean, default: false },
   },
   {
     timestamps: true,
@@ -41,7 +41,7 @@ export interface User extends Document {
   avatar_url: string;
   provider: string;
 
-  created_at: string;
-  updated_at: string;
-  deleted_flag: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedFlag: boolean;
 }
