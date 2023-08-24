@@ -2,11 +2,10 @@ import { Schema, Document, ObjectId } from 'mongoose';
 
 const CategorySchema = new Schema(
   {
-
-    name: String,
-    slug: String,
-    thumbnail: String,
-    description: String,
+    name: { type: String, default: '' },
+    slug: { type: String, default: '' },
+    thumbnail: { type: String, default: '' },
+    description: { type: String, default: '' },
     posts: [{ type: Schema.Types.ObjectId, ref: 'Post' }],
 
     createdAt: { type: Date, default: Date.now },
@@ -16,7 +15,7 @@ const CategorySchema = new Schema(
   },
   {
     timestamps: true,
-    collection: 'comment',
+    collection: 'category',
   },
 );
 

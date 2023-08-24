@@ -41,7 +41,39 @@ export function convertStringToObjectOrdering(text: string) {
   
     return obj;
   }
+
+
+  function getDifference(setA, setB) {
+    return new Set(
+      [...setA].filter(element => !setB.has(element))
+    );
+  }
   
 
+export function compareOldToNewList(newList, oldList) {
+  // Convert lists to sets to compare them more easily
+  const newSet = new Set(newList.map(String));
+  const oldSet = new Set(oldList.map(String));
 
+  const listAdd = [...newSet].filter(item => !oldSet.has(item));
+  const listDelete = [...oldSet].filter(item => !newSet.has(item));
 
+  // Check if the two sets are equal
+  if (!listAdd.length && !listDelete.length) {
+    return {
+      isEqual: true,
+      listAdd: [],
+      listDelete: []
+    };
+  } else {
+    // Get the lists of elements that are in the new list but not in the old list, and vice versa
+    const listAdd = [...newSet].filter(item => !oldSet.has(item));
+    const listDelete = [...oldSet].filter(item => !newSet.has(item));
+
+    return {
+      isEqual: false,
+      listAdd: listAdd,
+      listDelete: listDelete
+    };
+  }
+}

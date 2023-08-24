@@ -2,10 +2,10 @@ import { Schema, Document, ObjectId } from 'mongoose';
 
 const ContactSchema = new Schema(
   {
-    full_name: String,
-    email: String,
-    subject: String,
-    content: String,
+    fullName: { type: String, default: '' },
+    email: { type: String, default: '' },
+    subject: { type: String, default: '' },
+    content: { type: String, default: '' },
 
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
@@ -20,7 +20,7 @@ const ContactSchema = new Schema(
 export { ContactSchema };
 
 export interface Contact extends Document {
-  full_name: string;
+  fullName: string;
   email: string;
   subject: string;
   content: string;

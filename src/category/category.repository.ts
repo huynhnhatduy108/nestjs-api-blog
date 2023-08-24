@@ -1,17 +1,18 @@
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BaseRepository } from 'src/base.repository';
-import { Comment } from './comment.model';
+import { Category } from './category.model';
 
 
 @Injectable()
-export class CommentRepository extends BaseRepository<Comment> {
+export class CategoryRepository extends BaseRepository<Category> {
   constructor(
-    @InjectModel('Comment')
-    private readonly commentModel: Model<Comment>,
+    @InjectModel('Category')
+    private readonly categoryModel: Model<Category>,
   ) {
-    super(commentModel);
+    super(categoryModel);
   }
 
 }

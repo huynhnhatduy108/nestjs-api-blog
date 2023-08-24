@@ -1,15 +1,16 @@
 import { HttpException,Injectable } from '@nestjs/common';
-import { convertStringToObjectOrdering, generateSlugAndRandomString, stringToSlug } from 'src/helper/function';
+import { compareOldToNewList, convertStringToObjectOrdering, generateSlugAndRandomString, stringToSlug } from 'src/helper/function';
 import { PostQuery } from './post.interface';
 import { PostRepository } from './post.repository';
 import { ObjectId } from 'bson';
 import { CreatePostDto, UpdatePostDto } from './post.dto';
+import { CategoryRepository } from 'src/category/category.repository';
 
 const POST_PATH = ""
 
 @Injectable()
 export class PostService {
-    constructor(private readonly postRepo: PostRepository){
+    constructor(private readonly postRepo: PostRepository,private readonly categoryRepo: CategoryRepository ){
     }    
 
     async getInfoByIdOrSlug (match:Object={}){
@@ -68,7 +69,7 @@ export class PostService {
         // {isPublic:true}
         const matchCondition: any = {$and:[]}
         const sortCondition: any = {...convertStringToObjectOrdering(ordering)}
-        const skip = page * pageSize - pageSize;
+        const skip = Number(page) * Number(pageSize) - Number(pageSize);
 
         if (keyword){
             const keywordScope = {
@@ -88,7 +89,7 @@ export class PostService {
         if (categories.length){
             const catesScope = { "categories": { $in: categories } };
             matchCondition.$and.push(catesScope);
-        }        
+        }           
 
         const pipeline = [
             {
@@ -100,7 +101,7 @@ export class PostService {
               }
             },
             {
-              $match: matchCondition["$and"] ? matchCondition : {}
+              $match: matchCondition["$and"].length ? matchCondition : {}
             },
             {
               $addFields: {
@@ -130,7 +131,7 @@ export class PostService {
             },
             {
               $facet: {
-                data: [{ $skip: skip }, { $limit: pageSize }],
+                data: [{ $skip: skip }, { $limit: Number(pageSize) }],
                 count: [{ $count: "totalRecord" }]
               }
             }
@@ -144,11 +145,11 @@ export class PostService {
             totalRecord = result[0].count[0].totalRecord;
           }
 
-        const data = {
+          const data = {
             items: items,
-            page: page,
-            pageSize: pageSize,
-            totalPage: Math.ceil(totalRecord / pageSize)
+            page: Number(page),
+            pageSize: Number(pageSize),
+            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize))
           };
 
         return data
@@ -167,23 +168,69 @@ export class PostService {
 
     async createPost(post:CreatePostDto) {
         const slug = generateSlugAndRandomString(post.title, 5)
-        const newPost = await this.postRepo.create({...post, slug});        
+        const newPost = await this.postRepo.create({...post, slug});          
+        if (post.categories.length){
+          await this.categoryRepo.updateMany({_id: {"$in": post.categories}},{$push: {posts: newPost._id}})
+        }  
+        
         return newPost
     }
 
     async updatePost(postId, post: UpdatePostDto) {
+
+        const postExist = await this.postRepo.findOne({_id:new ObjectId(postId)}) 
+
+        if (!postExist) throw new HttpException('Post not found', 404);
+        
         const slug = generateSlugAndRandomString(post.title, 5)
+
+        if ("categories" in post) {
+          const categoryIds = post.categories;
+          const categoryExistIds = postExist.categories;
+          const { isEqual, listAdd, listDelete} = compareOldToNewList(categoryIds, categoryExistIds);
+
+          console.log(" isEqual, listAdd, listDelete",  isEqual, listAdd, listDelete);
+          
+          
+          if (!isEqual) {
+            if (listAdd.length > 0) {
+              await this.categoryRepo.updateMany(
+                { _id: { $in: listAdd.map((cate:string) => new ObjectId(cate)) } },
+                { $push: { posts:postExist._id } }
+              );
+            }
+            if (listDelete.length > 0) {
+              await this.categoryRepo.updateMany(
+                { _id: { $in: listDelete.map((cate:string) => new ObjectId(cate)) } },
+                { $pull: { posts:postExist._id } }
+              );
+            }
+          }
+        }
+
         const updatePost = await this.postRepo.findByConditionAndUpdate(
             { _id:new ObjectId(postId) },
             { $set: {...post, slug} },
             { returnDocument: "after" }
           ); 
+
         return {...updatePost["_doc"]}
     }
 
     async deletePost(postId){
-       const deletePost =await this.postRepo.deleteOne(postId);
-       if(!deletePost) throw new HttpException('Post not found', 404);
-       return ;
+
+      const postExist = await this.postRepo.findOne({_id:new ObjectId(postId)}) 
+      if (!postExist) throw new HttpException('Post not found', 404);
+
+      if (postExist.categories.length){
+        await this.categoryRepo.updateMany(
+          { _id: { $in: postExist.categories } },
+          { $pull: { posts:postExist._id } }
+          );
+      }
+
+      await this.postRepo.deleteOne(postId);
+
+      return ;
     }
 }

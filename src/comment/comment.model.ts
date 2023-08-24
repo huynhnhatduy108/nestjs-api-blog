@@ -10,8 +10,8 @@ const CommentSchema = new Schema(
         type: Schema.Types.ObjectId,
         ref: 'Post',
       },
-    title: String,
-    content: String,
+    title:  { type: String, default: '' },
+    content:  { type: String, default: '' },
     author: {
       type: Schema.Types.ObjectId,
       ref: 'User',

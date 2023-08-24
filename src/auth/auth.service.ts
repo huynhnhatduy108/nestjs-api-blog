@@ -1,13 +1,13 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { convertStringToObjectOrdering, generateSlugAndRandomString, stringToSlug } from 'src/helper/function';
-import { ContactQuery } from './contact.interface';
+import { convertStringToObjectOrdering } from 'src/helper/function';
+import { UpdateUserDto } from './auth.dto';
+import { UserQuery } from './auth.interface';
 import { ObjectId } from 'bson';
-import { CreateContactDto, UpdateContactDto } from './contact.dto';
-import { ContactRepository } from './contact.repository';
+import { UserRepository } from './auth.repository';
 
 @Injectable()
-export class ContactService {
-    constructor(private readonly contactRepo: ContactRepository){
+export class UserService {
+    constructor(private readonly userRepo: UserRepository){
     }    
 
     async getInfoByIdOrSlug (match:Object={}){
@@ -25,20 +25,20 @@ export class ContactService {
             },
         ]
 
-        const contacts = await this.contactRepo.aggregate(pipeline)        
+        const users = await this.userRepo.aggregate(pipeline)        
 
-        let contact = null
-        if (contacts.length > 0) {
-            contact = contacts[0];
+        let user = null
+        if (users.length > 0) {
+            user = users[0];
         }
 
-        if (!contact) throw new HttpException('contact not found', 404);
+        if (!user) throw new HttpException('user not found', 404);
 
-        return contact
+        return user
     }
 
 
-    async getListContact(condition:ContactQuery){
+    async getListUser(condition:UserQuery){
         const {page=1, pageSize=10, keyword="", ordering ="createdAt"} = condition;
         // {isPublic:true}
         const matchCondition: any = {$and:[]}
@@ -48,8 +48,10 @@ export class ContactService {
         if (keyword){
             const keywordScope = {
                 $or:[
-                        {title:{$regex : keyword, $options: 'i'}},
-                        {slug:{$regex : stringToSlug(keyword), '$options': 'i'}},
+                        {usename:{$regex : keyword, $options: 'i'}},
+                        {fullName:{$regex : keyword, $options: 'i'}},
+                        {email:{$regex : keyword, $options: 'i'}},
+
                     ]       
             }
             matchCondition.$and.push(keywordScope);
@@ -82,7 +84,7 @@ export class ContactService {
             }
           ];
           
-          const result = await this.contactRepo.aggregate(pipeline)
+          const result = await this.userRepo.aggregate(pipeline)
 
           const items = result[0].data;
           let totalRecord = 0;
@@ -101,30 +103,25 @@ export class ContactService {
 
     }
 
-    async getDetailContactById(contactId:string){
-        const contact = await this.getInfoByIdOrSlug({_id:new ObjectId(contactId)});        
-        return contact;
+    async getDetailUserById(userId:string){
+        const user = await this.getInfoByIdOrSlug({_id:new ObjectId(userId)});        
+        return user;
     }
 
-    async createContact(contact:CreateContactDto) {
-        const newContact = await this.contactRepo.create({...contact});        
-        return newContact
-    }
-
-    async updateContact(contactId, contact: UpdateContactDto) {
-        const updateContact = await this.contactRepo.findByConditionAndUpdate(
-            { _id:new ObjectId(contactId) },
-            { $set: {...contact} },
+    async updateUser(userId, user: UpdateUserDto) {
+        const updateUser = await this.userRepo.findByConditionAndUpdate(
+            { _id:new ObjectId(userId) },
+            { $set: {...user} },
             { returnDocument: "after" }
           ); 
-        return {...updateContact["_doc"]}
+        return {...updateUser["_doc"]}
     }
 
-    async deleteContact(contactId){
+    async deleteUser(userId){
 
-       const contactExist = await this.contactRepo.findOne({_id:new ObjectId(contactId)}) 
-       if (!contactExist) throw new HttpException('Contact not found', 404);
+       const userExist = await this.userRepo.findOne({_id:new ObjectId(userId)}) 
+       if (!userExist) throw new HttpException('user not found', 404);
 
-       await this.contactRepo.deleteOne(contactId);
+       await this.userRepo.deleteOne(userId);
     }
 }
