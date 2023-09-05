@@ -38,9 +38,8 @@ export class CommentService {
     }
 
 
-    async getListComment(condition:CommentQuery){
+    async getListCommentPost(condition:CommentQuery){
         const {page=1, pageSize=10, keyword="", ordering ="createdAt"} = condition;
-        // {isPublic:true}
         const matchCondition: any = {$and:[]}
         const sortCondition: any = {...convertStringToObjectOrdering(ordering)}
         const skip = Number(page) * Number(pageSize) - Number(pageSize);
@@ -55,6 +54,24 @@ export class CommentService {
         } 
 
         const pipeline = [
+            {
+              $group: {
+                  _id: "$postId",
+                  count:{$sum:1}
+              }    
+            },
+            {
+              $lookup: {
+                      from: "post",
+                      localField: "_id",
+                      foreignField: "_id",
+                      as: "postDocs"
+                  }
+            },
+            {   $addFields: {
+                    post_name:{ $arrayElemAt: ["$postDocs.name", 0] }
+                }
+            },
             {
               $match: matchCondition["$and"].length ? matchCondition : {}
             },
@@ -99,6 +116,67 @@ export class CommentService {
         return data
 
     }
+
+    async getDetailCommentByPostId(postId:string){
+      const pipeline = [
+        {
+          $match: { postId:new ObjectId(postId) }
+        },
+        {
+          $lookup: {
+            from: "user",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user"
+          }
+        },
+        {
+          $addFields: {
+            _id: { $toString: "$_id" },
+            parentId: { $toString: "$parentId" },
+            userComment: {
+              username: { $arrayElemAt: ["$user.username", 0] },
+              fullName: { $arrayElemAt: ["$user.fullName", 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            deletedFlag: 0,
+            postId: 0,
+            userId: 0,
+            user: 0
+          }
+        },
+        {
+          $facet: {
+            comments: [
+              { $match: { parentId: "" } },
+              { $sort: { createdAt: -1 } }
+            ],
+            subComments: [
+              { $match: { parentId: { $ne: "" } } },
+              { $sort: { createdAt: -1 } }
+            ]
+          }
+        }
+      ];
+      
+      const results = await this.commentRepo.aggregate(pipeline)
+      const comments = results[0].comments;
+      const subComments = results[0].subComments;
+      
+      for (const comment of comments) {
+        comment.subComments = [];
+        for (const subCmt of subComments) {
+          if (comment._id === subCmt.parentId) {
+            comment.subComments.push(subCmt);
+          }
+        }
+      }
+      
+      return comments;
+  }
 
     async getDetailCommentById(commentId:string){
         const comment = await this.getInfoByIdOrSlug({_id:new ObjectId(commentId)});        

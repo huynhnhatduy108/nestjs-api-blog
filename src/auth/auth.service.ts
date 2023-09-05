@@ -1,127 +1,120 @@
-import { HttpException, Injectable } from '@nestjs/common';
-import { convertStringToObjectOrdering } from 'src/helper/function';
-import { UpdateUserDto } from './auth.dto';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  comparePassword,
+  convertStringToObjectOrdering,
+  hashPassword,
+} from 'src/helper/function';
+import { registerDto, loginDto } from './auth.dto';
 import { UserQuery } from './auth.interface';
 import { ObjectId } from 'bson';
-import { UserRepository } from './auth.repository';
+import { AuthRepository } from './auth.repository';
+import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
-export class UserService {
-    constructor(private readonly userRepo: UserRepository){
-    }    
+export class AuthService {
+  constructor(
+    private readonly authRepo: AuthRepository,
+    private readonly jwtService: JwtService,
+  ) {}
 
-    async getInfoByIdOrSlug (match:Object={}){
-        const pipeline = [
-            {
-              $match: match
-            },
-            {
-              $project: {
-                deletedFlag: 0,
-                createdAt:0,
-                updatedAt:0,
-                __v:0,
-              }
-            },
-        ]
+  async profileUser(userId: string) {
+    const pipeline = [
+      {
+        $match: { _id: new ObjectId(userId) },
+      },
+      {
+        $project: {
+          password: 0,
+          deletedFlag: 0,
+          createdAt: 0,
+          updatedAt: 0,
+          __v: 0,
+        },
+      },
+    ];
 
-        const users = await this.userRepo.aggregate(pipeline)        
+    const users = await this.authRepo.aggregate(pipeline);
 
-        let user = null
-        if (users.length > 0) {
-            user = users[0];
-        }
-
-        if (!user) throw new HttpException('user not found', 404);
-
-        return user
+    let user = null;
+    if (users.length > 0) {
+      user = users[0];
     }
 
+    if (!user) throw new HttpException('user not found', 404);
 
-    async getListUser(condition:UserQuery){
-        const {page=1, pageSize=10, keyword="", ordering ="createdAt"} = condition;
-        // {isPublic:true}
-        const matchCondition: any = {$and:[]}
-        const sortCondition: any = {...convertStringToObjectOrdering(ordering)}
-        const skip = Number(page) * Number(pageSize) - Number(pageSize);
+    return user;
+  }
 
-        if (keyword){
-            const keywordScope = {
-                $or:[
-                        {usename:{$regex : keyword, $options: 'i'}},
-                        {fullName:{$regex : keyword, $options: 'i'}},
-                        {email:{$regex : keyword, $options: 'i'}},
+  async register(registerDto: registerDto) {
+    const { username, password, email } = registerDto;
 
-                    ]       
-            }
-            matchCondition.$and.push(keywordScope);
-        } 
+    const userExist = await this.authRepo.findOne({
+      $or: [{ username: username }, { email: email }],
+    });
+    if (userExist)
+      throw new HttpException('Username or email was existed!', 401);
 
-        const pipeline = [
-            {
-              $match: matchCondition["$and"].length ? matchCondition : {}
-            },
-            {
-              $addFields: {
-              }
-            },
-            {
-              $project: {
-                deletedFlag: 0,
-                createdAt:0,
-                updatedAt:0,
-                __v:0,
-              }
-            },
-            {
-              $sort: sortCondition
-            },
-            {
-              $facet: {
-                data: [{ $skip: skip }, { $limit: Number(pageSize) }],
-                count: [{ $count: "totalRecord" }]
-              }
-            }
-          ];
+    const passswordHash = await hashPassword(password);
+
+    const newUser = await this.authRepo.create({
+      ...registerDto,
+      password: passswordHash,
+    });
+
+    return registerDto;
+  }
+
+  async login(loginDto: loginDto) {
+    const { username, password } = loginDto;
+    const user = await this.authRepo.findOne({
+      username: username,
+    });
+    if (user) {
+      const isEqual = comparePassword(password, user.password);
+      if (!isEqual)
+        throw new HttpException(
+          'Wrong email or password',
+          HttpStatus.UNAUTHORIZED,
+        );
+      const { accessToken, refreshToken} = await this.createToken(user._id);
           
-          const result = await this.userRepo.aggregate(pipeline)
-
-          const items = result[0].data;
-          let totalRecord = 0;
-          if (result[0].data.length) {
-            totalRecord = result[0].count[0].totalRecord;
-          }
-
-        const data = {
-            items: items,
-            page: Number(page),
-            pageSize: Number(pageSize),
-            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize))
-          };
-
-        return data
-
+      return {username, accessToken, refreshToken};
     }
+    throw new HttpException('Wrong email or password', HttpStatus.UNAUTHORIZED);
+  }
 
-    async getDetailUserById(userId:string){
-        const user = await this.getInfoByIdOrSlug({_id:new ObjectId(userId)});        
-        return user;
+  private async createToken(userId) {
+    const refreshToken = this.jwtService.sign(
+      { userId },
+      {
+        secret: process.env.SECRETKEY_JWT,
+        expiresIn: process.env.EXPIRESIN_REFRESH_TOKEN,
+      },
+    );
+
+    const accessToken = this.jwtService.sign(
+      { userId },
+      {
+        secret: process.env.SECRETKEY_JWT,
+        expiresIn: process.env.EXPIRESIN_ACCESS_TOKEN,
+      },
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+
+  async validateUser(userId) {
+    const user = await this.authRepo.findById(userId);
+    if (!user) {
+      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
     }
+    return user;
+  }
 
-    async updateUser(userId, user: UpdateUserDto) {
-        const updateUser = await this.userRepo.findByConditionAndUpdate(
-            { _id:new ObjectId(userId) },
-            { $set: {...user} },
-            { returnDocument: "after" }
-          ); 
-        return {...updateUser["_doc"]}
-    }
-
-    async deleteUser(userId){
-
-       const userExist = await this.userRepo.findOne({_id:new ObjectId(userId)}) 
-       if (!userExist) throw new HttpException('user not found', 404);
-
-       await this.userRepo.deleteOne(userId);
-    }
+  
 }

@@ -66,8 +66,7 @@ export class PostService {
 
     async getListPost(condition:PostQuery){
         const {page=1, pageSize=10, keyword="", tags=[], categories=[], ordering ="createdAt"} = condition;
-        // {isPublic:true}
-        const matchCondition: any = {$and:[]}
+        const matchCondition: any = {$and:[{isPublic:true}]}
         const sortCondition: any = {...convertStringToObjectOrdering(ordering)}
         const skip = Number(page) * Number(pageSize) - Number(pageSize);
 
@@ -155,6 +154,97 @@ export class PostService {
         return data
 
     }
+
+    async getListPostAdmin(condition:PostQuery){
+      const {page=1, pageSize=10, keyword="", tags=[], categories=[], ordering ="createdAt"} = condition;
+      const matchCondition: any = {$and:[]}
+      const sortCondition: any = {...convertStringToObjectOrdering(ordering)}
+      const skip = Number(page) * Number(pageSize) - Number(pageSize);
+
+      if (keyword){
+          const keywordScope = {
+              $or:[
+                      {title:{$regex : keyword, $options: 'i'}},
+                      {slug:{$regex : stringToSlug(keyword), '$options': 'i'}},
+                  ]       
+          }
+          matchCondition.$and.push(keywordScope);
+      }
+
+      if (tags.length){
+          const tagsScope = { "tags": { $in: tags } };
+          matchCondition.$and.push(tagsScope);
+      }
+
+      if (categories.length){
+          const catesScope = { "categories": { $in: categories } };
+          matchCondition.$and.push(catesScope);
+      }           
+
+      const pipeline = [
+          {
+            $lookup: {
+              from: "category",
+              localField: "categories",
+              foreignField: "_id",
+              as: "categories"
+            }
+          },
+          {
+            $match: matchCondition["$and"].length ? matchCondition : {}
+          },
+          {
+            $addFields: {
+              categories: {
+                $map: {
+                  input: "$categories",
+                  as: "category",
+                  in: {
+                    _id: { $toString: "$$category._id" },
+                    name: "$$category.name",
+                    description: "$$category.description"
+                  }
+                }
+              }
+            }
+          },
+          {
+            $project: {
+              deletedFlag: 0,
+              createdAt:0,
+              updatedAt:0,
+              __v:0,
+            }
+          },
+          {
+            $sort: sortCondition
+          },
+          {
+            $facet: {
+              data: [{ $skip: skip }, { $limit: Number(pageSize) }],
+              count: [{ $count: "totalRecord" }]
+            }
+          }
+        ];
+        
+        const result = await this.postRepo.aggregate(pipeline)
+
+        const items = result[0].data;
+        let totalRecord = 0;
+        if (result[0].data.length) {
+          totalRecord = result[0].count[0].totalRecord;
+        }
+
+        const data = {
+          items: items,
+          page: Number(page),
+          pageSize: Number(pageSize),
+          totalPage: Math.ceil(Number(totalRecord) / Number(pageSize))
+        };
+
+      return data
+
+  }
 
     async getDetailPostById(postId:string){
         const post = await this.getInfoByIdOrSlug({_id:new ObjectId(postId)});        

@@ -45,6 +45,30 @@ export class CategoryService {
         return category
     }
 
+    async getListCategoryAll(){
+
+      const pipeline = [
+          {
+            $addFields: {
+              postSize:{ $size: '$posts' },
+            }
+          },
+          {
+            $project: {
+              posts:0,
+              deletedFlag: 0,
+              createdAt:0,
+              updatedAt:0,
+              __v:0,
+            }
+          },
+        ];
+        
+      const result = await this.categoryRepo.aggregate(pipeline)
+      return result
+
+  }
+
 
     async getListCategory(condition:CategoryQuery){
         const {page=1, pageSize=10, keyword="", ordering ="createdAt"} = condition;

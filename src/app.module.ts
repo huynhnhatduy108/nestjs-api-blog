@@ -8,13 +8,14 @@ import { UserModule } from './user/user.module';
 import { CommentModule } from './comment/comment.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [ConfigModule.forRoot(), MongooseModule.forRoot(process.env.MONGO_URL, {
     // useNewUrlParser: true,
     // useFindAndModify: false,
     // useCreateIndex: true,
-  }),PostModule, CategoryModule, ContactModule, UserModule, CommentModule],
+  }),PostModule, CategoryModule, ContactModule, UserModule, CommentModule, AuthModule],
   controllers: [AppController],
   providers: [AppService],
   exports:[],

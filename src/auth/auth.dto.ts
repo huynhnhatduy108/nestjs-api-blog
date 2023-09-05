@@ -1,13 +1,13 @@
 import { IsArray, IsNotEmpty, IsEmpty } from "class-validator";
 import { ObjectId } from "mongoose";
 
-export class UpdateUserDto {
-    @IsEmpty()
+export class registerDto {
+    @IsNotEmpty()
     username: string;
 
     fullName: string;
 
-    @IsEmpty()
+    @IsNotEmpty()
     email: string;
 
     address: string;
@@ -18,7 +18,7 @@ export class UpdateUserDto {
 
     profile: string;
     
-    @IsEmpty()
+    @IsNotEmpty()
     password: string;
 
     role: number;
@@ -28,5 +28,13 @@ export class UpdateUserDto {
     avatarUrl: string;
     
     provider: string;
+
+}
+
+export class loginDto {
+    @IsNotEmpty()
+    username: string;
+    @IsNotEmpty()
+    password: string;
 
 }

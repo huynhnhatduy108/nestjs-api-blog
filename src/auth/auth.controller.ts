@@ -1,33 +1,42 @@
 import { Controller, Get, Param, Post, Put, Body, Delete, Query } from '@nestjs/common';
-import { UpdateUserDto } from './auth.dto';
-import { UserQuery } from './auth.interface';
-import { UserService } from './auth.service';
+import { registerDto, loginDto } from './auth.dto';
+import { AuthService } from './auth.service';
 
-@Controller('user')
-export class UserController {
-    constructor(private userService: UserService) {}
-
-    @Get()
-    async getListUser(@Query() condition:UserQuery) {        
-        const user = await this.userService.getListUser(condition);        
-        return user;
-    }
+@Controller('auth')
+export class AuthController {
+    constructor(private authService: AuthService) {}
 
     @Get(':userId')
-    async getUserById(@Param('userId') userId:string) {
-        const user = await this.userService.getDetailUserById(userId);
+    async profileUser(@Param('userId') userId:string) {
+        const user = await this.authService.profileUser(userId);
         return user;
     }
 
-    @Put(':userId')
-    async updateUser(@Param('userId') userId:string ,@Body() updateUserDto: UpdateUserDto) {
-        const user = await this.userService.updateUser(userId, updateUserDto);
+    @Post('/register')
+    async register(@Body() registerDto: registerDto) {
+        const user = await this.authService.register(registerDto);
         return user;
     }
 
-    @Delete(':id')
-    async deleteUser(@Param('id') id: string) {
-        const user = await this.userService.deleteUser(id);
-        return user;
+    @Post('/login')
+    async login(@Body() loginDto: loginDto) {
+        const res = await this.authService.login(loginDto);
+        return res;
     }
+
+
+    @Post('/facebook')
+    async facebookLogin() {
+        return {};
+    }
+
+    @Post('/google')
+    async googleLogin() {
+        return {};
+    }
+
+
+
+
+
 }

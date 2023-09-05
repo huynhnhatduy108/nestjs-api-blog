@@ -1,4 +1,4 @@
-
+const bcrypt = require("bcrypt")
 
 export function stringToSlug(text: string) {
   if (!text) return '';
@@ -76,4 +76,15 @@ export function compareOldToNewList(newList, oldList) {
       listDelete: listDelete
     };
   }
+}
+
+export async function hashPassword(password) {
+  const hash = await bcrypt.hash(password, 10);
+  return hash
+  // Store hash in the database
+}
+
+export async function comparePassword(password, hash) {
+  const result = await bcrypt.compare(password, hash);
+  return result;
 }
