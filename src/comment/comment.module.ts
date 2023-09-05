@@ -13,7 +13,10 @@ import { PassportModule } from '@nestjs/passport';
 import { UserSchema } from 'src/auth/auth.model';
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: 'Comment', schema: CommentSchema }, { name: 'User', schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: 'Comment', schema: CommentSchema },
+      { name: 'User', schema: UserSchema },
+    ]),
     PassportModule.register({
       defaultStrategy: 'jwt',
       property: 'user',
@@ -31,8 +34,12 @@ import { UserSchema } from 'src/auth/auth.model';
     }),
   ],
   controllers: [CommentController],
-  providers: [CommentService, CommentRepository,  JwtStrategy,
+  providers: [
+    CommentService,
+    CommentRepository,
+    JwtStrategy,
     AuthService,
-    AuthRepository,],
+    AuthRepository,
+  ],
 })
 export class CommentModule {}

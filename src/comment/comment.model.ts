@@ -2,19 +2,23 @@ import { Schema, Document, ObjectId } from 'mongoose';
 
 const CommentSchema = new Schema(
   {
-    parent:{
+    parentId:{
         type: Schema.Types.ObjectId,
         ref: 'Comment',
+        default: null,
+
       },
-    post:{
+    postId:{
         type: Schema.Types.ObjectId,
         ref: 'Post',
+        default: null,
       },
     title:  { type: String, default: '' },
     content:  { type: String, default: '' },
     author: {
       type: Schema.Types.ObjectId,
       ref: 'User',
+      default: null,
     },
 
     createdAt: { type: Date, default: Date.now },
@@ -32,13 +36,11 @@ const CommentSchema = new Schema(
 export { CommentSchema };
 
 export interface Comment extends Document {
-  parent:ObjectId;
-  post:ObjectId;
+  parentId:ObjectId;
+  postId:ObjectId;
   title: string;
   content: string;
-  
   author: ObjectId;
-
   createdAt:string;
   updatedAt:string;
   deletedFlag:boolean;

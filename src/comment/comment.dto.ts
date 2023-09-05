@@ -2,10 +2,11 @@ import { IsNotEmpty } from "class-validator";
 import { ObjectId } from "mongoose";
 
 export class CreateCommentDto {
-    parent:ObjectId;
+    
+    parentId:ObjectId;
 
     @IsNotEmpty()
-    post:ObjectId;
+    postId:ObjectId;
 
     title: string;
 
@@ -16,10 +17,10 @@ export class CreateCommentDto {
 
 
 export class UpdateCommentDto {
-    parent:ObjectId;
+    parentId:ObjectId;
 
     @IsNotEmpty()
-    post:ObjectId;
+    postId:ObjectId;
 
     title: string;
 

@@ -48,6 +48,8 @@ export class CommentService {
             const keywordScope = {
                 $or:[
                         {title:{$regex : keyword, $options: 'i'}},
+                        {content:{$regex : keyword, $options: 'i'}},
+
                     ]       
             }
             matchCondition.$and.push(keywordScope);
@@ -69,7 +71,10 @@ export class CommentService {
                   }
             },
             {   $addFields: {
-                    post_name:{ $arrayElemAt: ["$postDocs.name", 0] }
+                    post:{
+                      title:{ $arrayElemAt: ["$postDocs.title", 0] },
+                      _id:{ $arrayElemAt: ["$postDocs._id", 0] },
+                    }
                 }
             },
             {
@@ -81,6 +86,8 @@ export class CommentService {
             },
             {
               $project: {
+                _id:0,
+                postDocs:0,
                 deletedFlag: 0,
                 createdAt:0,
                 updatedAt:0,
@@ -110,7 +117,8 @@ export class CommentService {
             items: items,
             page: Number(page),
             pageSize: Number(pageSize),
-            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize))
+            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize)),
+            totalRecord:totalRecord,
           };
 
         return data
@@ -125,18 +133,18 @@ export class CommentService {
         {
           $lookup: {
             from: "user",
-            localField: "userId",
+            localField: "author",
             foreignField: "_id",
-            as: "user"
+            as: "authorDocs"
           }
         },
         {
           $addFields: {
             _id: { $toString: "$_id" },
             parentId: { $toString: "$parentId" },
-            userComment: {
-              username: { $arrayElemAt: ["$user.username", 0] },
-              fullName: { $arrayElemAt: ["$user.fullName", 0] }
+            author: {
+              username: { $arrayElemAt: ["$authorDocs.username", 0] },
+              fullName: { $arrayElemAt: ["$authorDocs.fullName", 0] }
             }
           }
         },
@@ -144,18 +152,19 @@ export class CommentService {
           $project: {
             deletedFlag: 0,
             postId: 0,
-            userId: 0,
+            authorDocs: 0,
+            __v:0,
             user: 0
           }
         },
         {
           $facet: {
             comments: [
-              { $match: { parentId: "" } },
+              { $match: { parentId: null } },
               { $sort: { createdAt: -1 } }
             ],
             subComments: [
-              { $match: { parentId: { $ne: "" } } },
+              { $match: { parentId: { $ne: null} } },
               { $sort: { createdAt: -1 } }
             ]
           }
@@ -164,7 +173,7 @@ export class CommentService {
       
       const results = await this.commentRepo.aggregate(pipeline)
       const comments = results[0].comments;
-      const subComments = results[0].subComments;
+      const subComments = results[0].subComments;      
       
       for (const comment of comments) {
         comment.subComments = [];
@@ -183,8 +192,8 @@ export class CommentService {
         return comment;
     }
 
-    async createComment(comment:CreateCommentDto) {
-        const newcomment = await this.commentRepo.create({...comment});        
+    async createComment(user,comment:CreateCommentDto) {
+        const newcomment = await this.commentRepo.create({...comment, author: user._id});        
         return newcomment
     }
 

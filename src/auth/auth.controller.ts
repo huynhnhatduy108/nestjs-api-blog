@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Post, Put, Body, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Param, Post, Put, Body, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { registerDto, loginDto } from './auth.dto';
 import { AuthService } from './auth.service';
 
@@ -6,8 +7,10 @@ import { AuthService } from './auth.service';
 export class AuthController {
     constructor(private authService: AuthService) {}
 
-    @Get(':userId')
-    async profileUser(@Param('userId') userId:string) {
+    @UseGuards(AuthGuard('jwt'))
+    @Get('/profile')
+    async profileUser(@Req() req: Request) {
+        const  userId= req["user"]._id
         const user = await this.authService.profileUser(userId);
         return user;
     }
@@ -26,16 +29,14 @@ export class AuthController {
 
 
     @Post('/facebook')
-    async facebookLogin() {
+    async facebookLogin(@Body() facebookLoginDto) {
         return {};
     }
 
     @Post('/google')
-    async googleLogin() {
+    async googleLogin(@Body() googleLoginDto) {
         return {};
     }
-
-
 
 
 

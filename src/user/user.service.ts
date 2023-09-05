@@ -98,7 +98,8 @@ export class UserService {
             items: items,
             page: Number(page),
             pageSize: Number(pageSize),
-            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize))
+            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize)),
+            totalRecord:totalRecord,
           };
 
         return data

@@ -27,7 +27,6 @@ export class PostController {
         return post;
     }
 
-
     @Get('slug/:slug')
     async getPostBySlug(@Param('slug') slug:string) {
         const post = await this.postervice.getDetailPostBySlug(slug);
@@ -37,13 +36,14 @@ export class PostController {
     @UseGuards(AuthGuard('jwt'))
     @Post()
     async createPost(@Req() req: Request,@Body() CreatePostDto: CreatePostDto) {
-        const post = await this.postervice.createPost(CreatePostDto);
+        const user = req["user"]
+        const post = await this.postervice.createPost(user,CreatePostDto);
         return post;
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Put(':postId')
-    async updatePost(@Req() req: Request,@Param('postId') postId:string ,@Body() updatePostDto: UpdatePostDto) {
+    async updatePost(@Param('postId') postId:string ,@Body() updatePostDto: UpdatePostDto) {
         const post = await this.postervice.updatePost(postId, updatePostDto);
         return post;
     }

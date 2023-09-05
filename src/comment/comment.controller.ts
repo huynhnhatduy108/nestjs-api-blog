@@ -31,13 +31,15 @@ export class CommentController {
     @UseGuards(AuthGuard('jwt'))
     @Post()
     async createComment(@Req() req: Request, @Body() createCommentDto: CreateCommentDto) {
-        const comment = await this.commentService.createComment(createCommentDto);
+        const user = req["user"]
+        const comment = await this.commentService.createComment(user,createCommentDto);
         return comment;
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Put(':commentId')
     async updateComment(@Req() req: Request,@Param('commentId') commentId:string ,@Body() updateCommentDto: UpdateCommentDto) {
+        const user = req["user"]
         const comment = await this.commentService.updateComment(commentId, updateCommentDto);
         return comment;
     }

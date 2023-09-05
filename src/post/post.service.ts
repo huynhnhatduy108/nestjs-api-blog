@@ -24,6 +24,14 @@ export class PostService {
               }
             },
             {
+              $lookup: {
+                  from: "user",
+                  localField: "author",
+                  foreignField: "_id",
+                  as: "authorDocs"
+              }
+          },
+            {
               $match: match
             },
             {
@@ -38,11 +46,16 @@ export class PostService {
                       description: "$$category.description"
                     }
                   }
-                }
+                },
+                author:{
+                  username: { $arrayElemAt: ["$authorDocs.username", 0] },
+                  fullName: { $arrayElemAt: ["$authorDocs.fullName", 0] },
+              }
               }
             },
             {
               $project: {
+                authorDocs:0,
                 deletedFlag: 0,
                 createdAt:0,
                 updatedAt:0,
@@ -148,7 +161,8 @@ export class PostService {
             items: items,
             page: Number(page),
             pageSize: Number(pageSize),
-            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize))
+            totalPage: Math.ceil(Number(totalRecord) / Number(pageSize)),
+            totalRecord:totalRecord,
           };
 
         return data
@@ -239,7 +253,8 @@ export class PostService {
           items: items,
           page: Number(page),
           pageSize: Number(pageSize),
-          totalPage: Math.ceil(Number(totalRecord) / Number(pageSize))
+          totalPage: Math.ceil(Number(totalRecord) / Number(pageSize)),
+          totalRecord:totalRecord,
         };
 
       return data
@@ -256,9 +271,9 @@ export class PostService {
         return post;
     }
 
-    async createPost(post:CreatePostDto) {
-        const slug = generateSlugAndRandomString(post.title, 5)
-        const newPost = await this.postRepo.create({...post, slug});          
+    async createPost(user,post:CreatePostDto) {
+        const slug = generateSlugAndRandomString(post.title, 5)        
+        const newPost = await this.postRepo.create({...post, slug, author:user._id});          
         if (post.categories.length){
           await this.categoryRepo.updateMany({_id: {"$in": post.categories}},{$push: {posts: newPost._id}})
         }  
@@ -266,7 +281,7 @@ export class PostService {
         return newPost
     }
 
-    async updatePost(postId, post: UpdatePostDto) {
+    async updatePost(postId:string, post: UpdatePostDto) {
 
         const postExist = await this.postRepo.findOne({_id:new ObjectId(postId)}) 
 
@@ -277,10 +292,7 @@ export class PostService {
         if ("categories" in post) {
           const categoryIds = post.categories;
           const categoryExistIds = postExist.categories;
-          const { isEqual, listAdd, listDelete} = compareOldToNewList(categoryIds, categoryExistIds);
-
-          console.log(" isEqual, listAdd, listDelete",  isEqual, listAdd, listDelete);
-          
+          const { isEqual, listAdd, listDelete} = compareOldToNewList(categoryIds, categoryExistIds);          
           
           if (!isEqual) {
             if (listAdd.length > 0) {
