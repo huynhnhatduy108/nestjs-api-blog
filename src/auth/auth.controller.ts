@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Post, Put, Body, Delete, Query, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { registerDto, loginDto } from './auth.dto';
+import { registerDto, loginDto, facebookLoginDto, googleLoginDto } from './auth.dto';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -29,15 +29,17 @@ export class AuthController {
 
 
     @Post('/facebook')
-    async facebookLogin(@Body() facebookLoginDto) {
-        return {};
+    async facebookLogin(@Body() facebookLoginDto: facebookLoginDto) {
+        const res = await this.authService.facebookLogin(facebookLoginDto);
+
+        return res;
     }
 
     @Post('/google')
-    async googleLogin(@Body() googleLoginDto) {
-        return {};
+    async googleLogin(@Body() googleLoginDto: googleLoginDto) {
+        const res = await this.authService.googleLogin(googleLoginDto);
+        return res;
     }
-
 
 
 }

@@ -38,3 +38,33 @@ export class loginDto {
     password: string;
 
 }
+
+export class facebookLoginDto {
+    @IsNotEmpty()
+    username: string;
+
+    @IsNotEmpty()
+    email: string;
+
+    @IsNotEmpty()
+    fullName: string;
+
+    avatarUrl:string;
+    accessToken: string;
+
+}
+
+export class googleLoginDto {
+    @IsNotEmpty()
+    username: string;
+
+    @IsNotEmpty()
+    email: string;
+
+    @IsNotEmpty()
+    fullName: string;
+
+    avatarUrl:string;
+    accessToken: string;
+
+}

@@ -4,7 +4,7 @@ import {
   convertStringToObjectOrdering,
   hashPassword,
 } from 'src/helper/function';
-import { registerDto, loginDto } from './auth.dto';
+import { registerDto, loginDto, facebookLoginDto, googleLoginDto} from './auth.dto';
 import { UserQuery } from './auth.interface';
 import { ObjectId } from 'bson';
 import { AuthRepository } from './auth.repository';
@@ -17,6 +17,38 @@ export class AuthService {
     private readonly authRepo: AuthRepository,
     private readonly jwtService: JwtService,
   ) {}
+
+  private async createToken(userId) {
+    const refreshToken = this.jwtService.sign(
+      { userId },
+      {
+        secret: process.env.SECRETKEY_JWT,
+        expiresIn: process.env.EXPIRESIN_REFRESH_TOKEN,
+      },
+    );
+
+    const accessToken = this.jwtService.sign(
+      { userId },
+      {
+        secret: process.env.SECRETKEY_JWT,
+        expiresIn: process.env.EXPIRESIN_ACCESS_TOKEN,
+      },
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+
+  async validateUser(userId) {
+    const user = await this.authRepo.findById(userId);
+    if (!user) {
+      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+    }
+    return user;
+  }
 
   async profileUser(userId: string) {
     const pipeline = [
@@ -79,42 +111,70 @@ export class AuthService {
         );
       const { accessToken, refreshToken} = await this.createToken(user._id);
           
-      return {username, accessToken, refreshToken};
+      return {username, accessToken, refreshToken, fullName: user["fullName"], email: user["email"], avatarUrl: user["avatarUrl"]  };
     }
     throw new HttpException('Wrong email or password', HttpStatus.UNAUTHORIZED);
   }
 
-  private async createToken(userId) {
-    const refreshToken = this.jwtService.sign(
-      { userId },
-      {
-        secret: process.env.SECRETKEY_JWT,
-        expiresIn: process.env.EXPIRESIN_REFRESH_TOKEN,
-      },
-    );
-
-    const accessToken = this.jwtService.sign(
-      { userId },
-      {
-        secret: process.env.SECRETKEY_JWT,
-        expiresIn: process.env.EXPIRESIN_ACCESS_TOKEN,
-      },
-    );
-
-    return {
-      accessToken,
-      refreshToken,
-    };
-  }
-
-
-  async validateUser(userId) {
-    const user = await this.authRepo.findById(userId);
+  async facebookLogin(facebookLoginDto: facebookLoginDto) {
+    const { username, email, fullName, avatarUrl } = facebookLoginDto;
+    const user = await this.authRepo.findOne({
+      $or: [
+        { username: email } ,
+        { email:  email } 
+    ]
+    });
     if (!user) {
-      throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+      const userCreate ={
+          username,
+          email, 
+          fullName, 
+          avatarUrl,
+          provider:"FACEBOOK",
+      }
+     const newUser = await this.authRepo.create({
+      ...userCreate,
+      });
+
+      const { accessToken, refreshToken} = await this.createToken(newUser._id);
+      return { username, email, fullName, avatarUrl, accessToken, refreshToken, };
+
     }
-    return user;
+    else{
+      const { accessToken, refreshToken} = await this.createToken(user._id);
+      return {username, accessToken, refreshToken, fullName: user["fullName"], email: user["email"], avatarUrl: user["avatarUrl"]};
+    }
+  
   }
 
+  async googleLogin(googleLoginDto: googleLoginDto) {
+    const { username, email, fullName, avatarUrl } = googleLoginDto;
+    const user = await this.authRepo.findOne({
+      $or: [
+        { username: email } ,
+        { email:  email } 
+    ]
+    });
+    if (!user) {
+      const userCreate ={
+          username,
+          email, 
+          fullName, 
+          avatarUrl,
+          provider:"FACEBOOK",
+      }
+     const newUser = await this.authRepo.create({
+      ...userCreate,
+      });
+
+      const { accessToken, refreshToken} = await this.createToken(newUser._id);
+      return { username, email, fullName, avatarUrl, accessToken, refreshToken, };
+
+    }
+    else{
+      const { accessToken, refreshToken} = await this.createToken(user._id);
+      return {username, accessToken, refreshToken, fullName: user["fullName"], email: user["email"], avatarUrl: user["avatarUrl"]};
+    }
+  }
   
 }
