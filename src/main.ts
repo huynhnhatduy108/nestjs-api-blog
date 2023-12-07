@@ -16,8 +16,8 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   app.useGlobalPipes(new ValidationPipe()); // <== Thêm vào đây
-  await app.listen(3000, () =>
-    Logger.log(`Application running on port ${3000}`),
+  await app.listen(4000, () =>
+    Logger.log(`Application running on port ${4000}`),
   );
 }
 bootstrap();
